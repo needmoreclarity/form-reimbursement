@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reimbursement Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-page-break {
+                page-break-after: always;
+            }
+            body {
+                margin: 0;
+                padding: 20px;
+            }
+            .print-border-dotted {
+                border-style: dotted !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header Controls -->
+        <div class="flex justify-between items-center mb-6 no-print">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Reimbursement Form</h1>
+                <p class="text-sm text-green-600 mt-1">✓ Auto-save aktif - Data tersimpan otomatis</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="clearAllData()" class="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Hapus Semua
+                </button>
+                <button onclick="addForm()" class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Tambah Form
+                </button>
+                <button onclick="window.print()" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Print
+                </button>
+            </div>
+        </div>
+
+        <!-- Forms Container -->
+        <div id="formsContainer"></div>
+    </div>
+
+    <script>
+        let formCounter = 0;
+        let forms = [];
+        const STORAGE_KEY = 'reimbursement_forms';
+
+        // Load data from localStorage
+        function loadFromStorage() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    forms = data.forms;
+                    formCounter = data.counter;
+                    return true;
+                } catch (e) {
+                    console.error('Error loading data:', e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // Save data to localStorage
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    forms: forms,
+                    counter: formCounter
+                }));
+            } catch (e) {
+                console.error('Error saving data:', e);
+                alert('Gagal menyimpan data. Storage mungkin penuh.');
+            }
+        }
+
+        function initForm() {
+            return {
+                id: ++formCounter,
+                nama: '',
+                divisi: '',
+                tanggal: '',
+                items: [
+                    { no: 1, keterangan: '', nominal: '', nomorRekening: '' },
+                    { no: 2, keterangan: '', nominal: '', nomorRekening: '' },
+                    { no: 3, keterangan: '', nominal: '', nomorRekening: '' },
+                    { no: 4, keterangan: '', nominal: '', nomorRekening: '' }
+                ],
+                catatan: '',
+                yangMengajukan: ''
+            };
+        }
+
+        function addForm() {
+            forms.push(initForm());
+            saveToStorage();
+            renderForms();
+        }
+
+        function removeForm(id) {
+            if (forms.length > 1) {
+                if (confirm('Hapus form ini?')) {
+                    forms = forms.filter(f => f.id !== id);
+                    saveToStorage();
+                    renderForms();
+                }
+            } else {
+                alert('Minimal harus ada 1 form!');
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Hapus semua data form? Data yang tersimpan akan hilang permanen!')) {
+                localStorage.removeItem(STORAGE_KEY);
+                forms = [];
+                formCounter = 0;
+                addForm();
+            }
+        }
+
+        function addItem(formId) {
+            const form = forms.find(f => f.id === formId);
+            if (form) {
+                form.items.push({
+                    no: form.items.length + 1,
+                    keterangan: '',
+                    nominal: '',
+                    nomorRekening: ''
+                });
+                saveToStorage();
+                renderForms();
+            }
+        }
+
+        function removeItem(formId, itemNo) {
+            const form = forms.find(f => f.id === formId);
+            if (form && form.items.length > 1) {
+                form.items = form.items.filter(item => item.no !== itemNo)
+                    .map((item, index) => ({ ...item, no: index + 1 }));
+                saveToStorage();
+                renderForms();
+            }
+        }
+
+        function updateField(formId, field, value) {
+            const form = forms.find(f => f.id === formId);
+            if (form) {
+                form[field] = value;
+                saveToStorage();
+            }
+        }
+
+        function updateItem(formId, itemNo, field, value) {
+            const form = forms.find(f => f.id === formId);
+            if (form) {
+                const item = form.items.find(i => i.no === itemNo);
+                if (item) {
+                    item[field] = value;
+                    saveToStorage();
+                }
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '_______________';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', { 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+            });
+        }
+
+        function renderForms() {
+            const container = document.getElementById('formsContainer');
+            container.innerHTML = forms.map(form => `
+                <div class="bg-white rounded-lg shadow-lg p-8 mb-6 print-page-break relative">
+                    ${forms.length > 1 ? `
+                        <button onclick="removeForm(${form.id})" class="absolute top-4 right-4 text-red-600 hover:text-red-800 no-print">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                    
+                    <h2 class="text-2xl font-bold text-center mb-6 border-b-2 border-gray-300 pb-2">
+                        REIMBURSEMENT FORM
+                    </h2>
+
+                    <div class="grid grid-cols-1 gap-2 mb-6">
+                        <div class="flex items-center">
+                            <label class="text-sm font-semibold w-24">Nama</label>
+                            <span class="mr-2">:</span>
+                            <input type="text" value="${form.nama}" 
+                                onchange="updateField(${form.id}, 'nama', this.value)"
+                                class="flex-1 border-b-2 border-gray-300 focus:border-blue-500 outline-none px-2 py-1 print-border-dotted">
+                        </div>
+                        <div class="flex items-center">
+                            <label class="text-sm font-semibold w-24">Divisi</label>
+                            <span class="mr-2">:</span>
+                            <input type="text" value="${form.divisi}"
+                                onchange="updateField(${form.id}, 'divisi', this.value)"
+                                class="flex-1 border-b-2 border-gray-300 focus:border-blue-500 outline-none px-2 py-1 print-border-dotted">
+                        </div>
+                        <div class="flex items-center">
+                            <label class="text-sm font-semibold w-24">Tanggal</label>
+                            <span class="mr-2">:</span>
+                            <input type="date" value="${form.tanggal}"
+                                onchange="updateField(${form.id}, 'tanggal', this.value); renderForms();"
+                                class="flex-1 border-b-2 border-gray-300 focus:border-blue-500 outline-none px-2 py-1 print-border-dotted">
+                        </div>
+                    </div>
+
+                    <table class="w-full mb-6 border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-400 px-2 py-2 w-12">No.</th>
+                                <th class="border border-gray-400 px-2 py-2">Keterangan</th>
+                                <th class="border border-gray-400 px-2 py-2 w-40">Nominal</th>
+                                <th class="border border-gray-400 px-2 py-2 w-40">Nomor Rekening</th>
+                                <th class="border border-gray-400 px-2 py-2 w-12 no-print">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${form.items.map(item => `
+                                <tr>
+                                    <td class="border border-gray-400 px-2 py-2 text-center">${item.no}</td>
+                                    <td class="border border-gray-400 px-2 py-2">
+                                        <input type="text" value="${item.keterangan}"
+                                            onchange="updateItem(${form.id}, ${item.no}, 'keterangan', this.value)"
+                                            class="w-full outline-none px-1">
+                                    </td>
+                                    <td class="border border-gray-400 px-2 py-2">
+                                        <input type="text" value="${item.nominal}"
+                                            onchange="updateItem(${form.id}, ${item.no}, 'nominal', this.value)"
+                                            class="w-full outline-none px-1" placeholder="Rp">
+                                    </td>
+                                    <td class="border border-gray-400 px-2 py-2">
+                                        <input type="text" value="${item.nomorRekening}"
+                                            onchange="updateItem(${form.id}, ${item.no}, 'nomorRekening', this.value)"
+                                            class="w-full outline-none px-1">
+                                    </td>
+                                    <td class="border border-gray-400 px-2 py-2 text-center no-print">
+                                        ${form.items.length > 1 ? `
+                                            <button onclick="removeItem(${form.id}, ${item.no})" class="text-red-600 hover:text-red-800">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        ` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <button onclick="addItem(${form.id})" class="mb-6 flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition no-print">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Tambah Item
+                    </button>
+
+                    <div class="mb-6">
+                        <div class="flex items-start">
+                            <label class="text-sm font-semibold w-32">Catatan Penting:</label>
+                            <div class="flex-1">
+                                <textarea 
+                                    onchange="updateField(${form.id}, 'catatan', this.value)"
+                                    class="w-full border-2 border-gray-300 rounded px-3 py-2 focus:border-blue-500 outline-none print-border-dotted"
+                                    rows="2">${form.catatan}</textarea>
+                                <p class="text-xs text-gray-600 italic mt-1">Wajib Sertakan Nota dibelakang Kertas!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-8 mt-12">
+                        <div class="text-center">
+                            <p class="text-sm mb-20">Yang Mengajukan</p>
+                            <div class="mb-2">
+                                <input type="text" value="${form.yangMengajukan}"
+                                    onchange="updateField(${form.id}, 'yangMengajukan', this.value)"
+                                    class="w-full border-b-2 border-gray-300 text-center outline-none print-border-dotted text-sm"
+                                    placeholder="Nama">
+                            </div>
+                            <p class="text-xs">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm mb-20">Mengetahui</p>
+                            <div class="border-b-2 border-gray-300 mb-2 print-border-dotted text-sm">
+                                &nbsp;
+                            </div>
+                            <p class="text-xs">(Rizky)</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm mb-20">Bekasi, Yang Menyetujui</p>
+                            <div class="border-b-2 border-gray-300 mb-2 print-border-dotted text-sm">
+                                &nbsp;
+                            </div>
+                            <p class="text-xs">(Ratna Ayu/Riany Linardi)</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize: Load from storage or create new form
+        if (!loadFromStorage()) {
+            addForm();
+        } else {
+            renderForms();
+        }
+    </script>
+</body>
+</html>
